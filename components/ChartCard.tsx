@@ -16,7 +16,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
 
-  // 独立数据处理逻辑，确保锁定后配置不丢失
   const chartData = useMemo(() => {
     const { xAxisColumn, metrics, groupColumn } = meta.configSnapshot;
     if (xAxisColumn === 'SUMMARY') {
@@ -71,16 +70,24 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
     }));
 
     const commonGrid = { top: '15%', left: '10%', right: '10%', bottom: '15%', containLabel: true };
-    const commonXAxis = {
+    
+    // 显式声明轴类型以满足 ECharts 严格的类型要求
+    const commonXAxis: echarts.XAXisComponentOption = {
       type: 'category' as const,
       data: categories,
       axisLabel: { color: '#94a3b8', fontSize: 12 },
       axisLine: { lineStyle: { color: 'rgba(0, 242, 255, 0.2)' } }
     };
-    const commonYAxis = {
+    
+    const commonYAxis: echarts.YAXisComponentOption = {
       type: 'value' as const,
       axisLabel: { color: '#94a3b8', fontSize: 12 },
-      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)', type: 'dashed' } }
+      splitLine: { 
+        lineStyle: { 
+          color: 'rgba(255, 255, 255, 0.05)', 
+          type: 'dashed' as const // 关键修复: 必须是 as const
+        } 
+      }
     };
 
     switch (meta.type) {
@@ -102,8 +109,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
         return {
           tooltip: { trigger: 'axis' },
           grid: commonGrid,
+          // 这里的类型转换确保 YAXisOption 匹配
           xAxis: isHorizontal ? { type: 'value' as const } : commonXAxis,
-          yAxis: isHorizontal ? { type: 'category' as const, data: categories } : commonYAxis,
+          yAxis: isHorizontal ? { type: 'category' as const, data: categories } as echarts.YAXisComponentOption : commonYAxis,
           series: seriesData.map(s => ({
             name: s.name, type: 'bar' as const, data: s.data, itemStyle: { borderRadius: 4 }
           }))
