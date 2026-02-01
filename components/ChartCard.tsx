@@ -72,13 +72,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
 
     const commonGrid = { top: '15%', left: '10%', right: '10%', bottom: '15%', containLabel: true };
     const commonXAxis = {
-      type: 'category',
+      type: 'category' as const,
       data: categories,
       axisLabel: { color: '#94a3b8', fontSize: 12 },
       axisLine: { lineStyle: { color: 'rgba(0, 242, 255, 0.2)' } }
     };
     const commonYAxis = {
-      type: 'value',
+      type: 'value' as const,
       axisLabel: { color: '#94a3b8', fontSize: 12 },
       splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)', type: 'dashed' } }
     };
@@ -92,7 +92,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
           xAxis: commonXAxis,
           yAxis: commonYAxis,
           series: seriesData.map(s => ({
-            name: s.name, type: 'line', data: s.data, smooth: true,
+            name: s.name, type: 'line' as const, data: s.data, smooth: true,
             areaStyle: meta.type === 'area' ? { color: s.color + '33' } : undefined
           }))
         };
@@ -102,27 +102,27 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
         return {
           tooltip: { trigger: 'axis' },
           grid: commonGrid,
-          xAxis: isHorizontal ? { type: 'value' } : commonXAxis,
-          yAxis: isHorizontal ? { type: 'category', data: categories } : commonYAxis,
+          xAxis: isHorizontal ? { type: 'value' as const } : commonXAxis,
+          yAxis: isHorizontal ? { type: 'category' as const, data: categories } : commonYAxis,
           series: seriesData.map(s => ({
-            name: s.name, type: 'bar', data: s.data, itemStyle: { borderRadius: 4 }
+            name: s.name, type: 'bar' as const, data: s.data, itemStyle: { borderRadius: 4 }
           }))
         };
       case 'pie':
         return {
           tooltip: { trigger: 'item' },
           series: [{
-            type: 'pie', radius: ['40%', '70%'],
+            type: 'pie' as const, radius: ['40%', '70%'],
             data: data.slice(0, 10).map((r, i) => ({ 
-              name: r[dimensionKey], value: Number(r[metrics[0]]), itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] }
+              name: String(r[dimensionKey]), value: Number(r[metrics[0]]), itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] }
             }))
           }]
         };
       case 'funnel':
         return {
           series: [{
-            type: 'funnel',
-            data: data.slice(0, 6).map((r, i) => ({ name: r[dimensionKey], value: Number(r[metrics[0]]) }))
+            type: 'funnel' as const,
+            data: data.slice(0, 6).map((r, i) => ({ name: String(r[dimensionKey]), value: Number(r[metrics[0]]) }))
           }]
         };
       case 'waterfall':
@@ -132,8 +132,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
           xAxis: commonXAxis,
           yAxis: commonYAxis,
           series: [
-            { type: 'bar', stack: 'total', itemStyle: { color: 'transparent' }, data: base },
-            { type: 'bar', stack: 'total', data: data.map(r => Number(r[metrics[0]])) }
+            { type: 'bar' as const, stack: 'total', itemStyle: { color: 'transparent' }, data: base },
+            { type: 'bar' as const, stack: 'total', data: data.map(r => Number(r[metrics[0]])) }
           ]
         };
       default: return {};
@@ -187,7 +187,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
               <tbody className="text-slate-300">
                 {chartData.slice(0, 50).map((r, i) => (
                   <tr key={i} className="border-b border-white/5 hover:bg-cyan-500/5 transition-colors">
-                    <td className="p-4">{r[meta.configSnapshot.xAxisColumn === 'SUMMARY' ? (meta.configSnapshot.groupColumn || '全局') : meta.configSnapshot.xAxisColumn]}</td>
+                    <td className="p-4">{String(r[meta.configSnapshot.xAxisColumn === 'SUMMARY' ? (meta.configSnapshot.groupColumn || '全局') : meta.configSnapshot.xAxisColumn])}</td>
                     {meta.configSnapshot.metrics.map(m => <td key={m} className="p-4 font-mono font-bold text-cyan-100">{Number(r[m])?.toLocaleString()}</td>)}
                   </tr>
                 ))}
