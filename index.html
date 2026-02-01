@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赛博数据看板生成器 - 业务可视化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-pink: #f0abfc;
+            --deep-bg: #060c1d; /* 稍浅一点的赛博蓝背景 */
+            --card-bg: rgba(10, 25, 50, 0.7);
+            --accent-border: rgba(0, 242, 255, 0.25);
+        }
+        body {
+            background-color: var(--deep-bg);
+            color: #f8fafc;
+            /* 采用微软雅黑，加大字号 */
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            font-size: 1.15rem; 
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.04), transparent 80%),
+                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+            background-size: cover, 40px 40px, 40px 40px;
+        }
+        .cyber-font { font-family: 'Orbitron', sans-serif; }
+        
+        .tech-card {
+            background: var(--card-bg);
+            border: 1px solid var(--accent-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+            position: relative;
+            backdrop-filter: blur(12px);
+            border-radius: 4px;
+        }
+        
+        /* 顶部装饰线 */
+        .tech-card::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: 20px; right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .header-glow {
+            background: linear-gradient(180deg, rgba(10, 30, 70, 0.8) 0%, rgba(5, 15, 35, 0.9) 100%);
+            border-bottom: 2px solid rgba(0, 242, 255, 0.4);
+            box-shadow: 0 5px 25px rgba(0, 242, 255, 0.15);
+        }
+
+        .neon-text-cyan { text-shadow: 0 0 15px rgba(0, 242, 255, 0.7); }
+        .neon-text-pink { text-shadow: 0 0 15px rgba(240, 171, 252, 0.7); }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--deep-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 3px; }
+
+        /* 动画 */
+        @keyframes pulse-border {
+            0% { border-color: rgba(0, 242, 255, 0.2); }
+            50% { border-color: rgba(0, 242, 255, 0.6); }
+            100% { border-color: rgba(0, 242, 255, 0.2); }
+        }
+        .active-card { animation: pulse-border 2s infinite; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "echarts": "https://esm.sh/echarts@^5.5.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "papaparse": "https://esm.sh/papaparse@^5.5.3",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
