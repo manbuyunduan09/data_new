@@ -16,6 +16,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
 
+  // 独立数据处理逻辑，确保锁定后配置不丢失
   const chartData = useMemo(() => {
     const { xAxisColumn, metrics, groupColumn } = meta.configSnapshot;
     if (xAxisColumn === 'SUMMARY') {
@@ -142,7 +143,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
   return (
     <div 
       id={meta.id}
-      className={`tech-card flex flex-col min-h-[500px] transition-all chart-container-node ${meta.isSaved ? 'ring-2 ring-cyan-500 shadow-[0_0_25px_rgba(0,242,255,0.4)]' : ''}`}
+      className={`tech-card flex flex-col min-h-[450px] transition-all chart-container-node ${meta.isSaved ? 'ring-2 ring-cyan-500 shadow-[0_0_25px_rgba(0,242,255,0.4)]' : ''}`}
     >
       <div className="flex justify-between items-center p-6 border-b border-white/5">
         <div className="border-l-4 border-cyan-500 pl-4">
@@ -161,7 +162,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
         </div>
       </div>
 
-      <div className="flex-1 p-6 flex flex-col justify-center chart-content-area">
+      <div className="flex-1 p-6 flex flex-col justify-center chart-content-area relative">
         {meta.type === 'metric_card' ? (
           <div className="flex flex-col items-center gap-6">
             {meta.configSnapshot.metrics.map((m) => {
@@ -197,8 +198,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({ meta, rawData, onRemove, o
           <div ref={chartRef} className="w-full h-[350px] echarts-dom-ref" />
         )}
       </div>
-      <div className="p-4 text-[10px] text-slate-700 mono-font text-center uppercase tracking-widest opacity-50">
-        Dashboard Module 0x{meta.id.substring(0,6)}
+      <div className="p-4 border-t border-white/5 text-[10px] text-slate-600 mono-font text-center uppercase tracking-widest">
+        DATA MODULE 0x{meta.id.substring(0,8)} // SYSTEM_LOCK_STATUS: {meta.isSaved ? 'ON' : 'OFF'}
       </div>
     </div>
   );

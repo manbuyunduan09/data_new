@@ -11,16 +11,15 @@
         :root {
             --neon-cyan: #00f2ff;
             --neon-pink: #f0abfc;
-            --deep-bg: #060c1d; /* 稍浅一点的赛博蓝背景 */
+            --deep-bg: #060c1d; 
             --card-bg: rgba(10, 25, 50, 0.7);
             --accent-border: rgba(0, 242, 255, 0.25);
         }
         body {
             background-color: var(--deep-bg);
             color: #f8fafc;
-            /* 采用微软雅黑，加大字号 */
             font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-            font-size: 1.15rem; 
+            font-size: 1.1rem; 
             overflow-x: hidden;
             background-image: 
                 radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.04), transparent 80%),
@@ -39,7 +38,6 @@
             border-radius: 4px;
         }
         
-        /* 顶部装饰线 */
         .tech-card::before {
             content: '';
             position: absolute;
@@ -58,34 +56,27 @@
         .neon-text-cyan { text-shadow: 0 0 15px rgba(0, 242, 255, 0.7); }
         .neon-text-pink { text-shadow: 0 0 15px rgba(240, 171, 252, 0.7); }
 
-        /* 滚动条美化 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--deep-bg); }
         ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 3px; }
-
-        /* 动画 */
-        @keyframes pulse-border {
-            0% { border-color: rgba(0, 242, 255, 0.2); }
-            50% { border-color: rgba(0, 242, 255, 0.6); }
-            100% { border-color: rgba(0, 242, 255, 0.2); }
-        }
-        .active-card { animation: pulse-border 2s infinite; }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
-    "echarts": "https://esm.sh/echarts@^5.5.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
     "papaparse": "https://esm.sh/papaparse@^5.5.3",
-    "xlsx": "https://esm.sh/xlsx@0.18.5"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "xlsx": "https://esm.sh/xlsx@^0.18.5",
+    "echarts": "https://esm.sh/echarts@^6.0.0"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

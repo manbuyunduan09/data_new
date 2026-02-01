@@ -71,12 +71,6 @@ const App: React.FC = () => {
 
   const addChart = (type: ChartMeta['type']) => {
     if (!config.metrics.length) return alert('请先在配置面板中选择指标列');
-    let descType: ChartMeta['descriptionType'] = 'trend';
-    const metricStr = config.metrics.join(' ');
-    if (metricStr.includes('贡献') || metricStr.includes('占比') || type === 'pie') descType = 'structure';
-    else if (metricStr.includes('排名') || metricStr.includes('TOP') || type === 'ranking') descType = 'ranking';
-    else if (type === 'funnel') descType = 'funnel';
-
     const newChart: ChartMeta = {
       id: crypto.randomUUID(),
       type,
@@ -84,75 +78,91 @@ const App: React.FC = () => {
       configSnapshot: { ...config },
       isLocked: false,
       isSaved: false,
-      descriptionType: descType
+      descriptionType: 'trend'
     };
     setCharts([...charts, newChart]);
   };
 
   const exportSavedHTML = () => {
-    const saved = charts.filter(c => c.isSaved);
-    if (!saved.length) return alert('请先保存并锁定要导出的图表模块。');
+    const savedCharts = charts.filter(c => c.isSaved);
+    if (!savedCharts.length) return alert('请先保存并锁定要导出的图表模块。');
     
-    // 克隆当前的 DOM 结构
-    const rootClone = document.getElementById('dashboard-grid')?.cloneNode(true) as HTMLElement;
-    if (!rootClone) return;
+    // 1. 克隆整个显示区域容器
+    const container = document.getElementById('dashboard-grid');
+    if (!container) return;
+    
+    const clone = container.cloneNode(true) as HTMLElement;
+    
+    // 2. 遍历真实 DOM，获取 ECharts 图片 URL，并替换克隆 DOM 中的内容
+    savedCharts.forEach(meta => {
+      const realCard = document.getElementById(meta.id);
+      if (!realCard) return;
+      
+      const echartsDom = realCard.querySelector('.echarts-dom-ref');
+      const cloneCard = clone.querySelector(`[id="${meta.id}"]`);
+      if (!cloneCard) return;
 
-    // 查找所有的图表容器，并将 ECharts 画布替换为 Base64 图片
-    const containers = document.querySelectorAll('.chart-container-node');
-    containers.forEach((realNode) => {
-      const chartId = realNode.getAttribute('id');
-      const savedMeta = charts.find(c => c.id === chartId);
-      if (!savedMeta || !savedMeta.isSaved) return;
-
-      const echartsDom = realNode.querySelector('.echarts-dom-ref');
       if (echartsDom) {
         const instance = echarts.getInstanceByDom(echartsDom as HTMLElement);
         if (instance) {
-          const imgBase64 = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: 'transparent' });
-          
-          // 在克隆的 DOM 中找到对应的节点并替换其内部图表部分为图片
-          const cloneNode = rootClone.querySelector(`[id="${chartId}"]`);
-          if (cloneNode) {
-            const chartArea = cloneNode.querySelector('.chart-content-area');
-            if (chartArea) {
-              chartArea.innerHTML = `<img src="${imgBase64}" style="width:100%; height:auto;" />`;
-            }
+          const dataURL = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: 'transparent' });
+          const contentArea = cloneCard.querySelector('.chart-content-area');
+          if (contentArea) {
+            contentArea.innerHTML = `<img src="${dataURL}" style="width:100%; height:auto; display:block;" />`;
           }
         }
       }
+      
+      // 移除克隆节点中的操作按钮
+      cloneCard.querySelectorAll('button').forEach(b => b.remove());
     });
 
-    // 移除克隆 DOM 中的交互按钮
-    rootClone.querySelectorAll('button').forEach(btn => btn.remove());
-
-    const head = document.head.innerHTML;
-    const content = rootClone.innerHTML;
-    const html = `<!DOCTYPE html><html><head>${head}<style>body{padding:40px; background:#060c1d; color:#fff; font-family:'微软雅黑';} .tech-card{margin-bottom:40px; border:1px solid rgba(0,242,255,0.3); background:rgba(10,25,50,0.8);}</style></head><body><h1 style="text-align:center; color:#00f2ff; margin-bottom:40px; font-size:32px; font-weight:bold;">业务数据看板导出 - ${new Date().toLocaleDateString()}</h1><div style="max-width:1200px; margin:0 auto; display:grid; grid-template-columns: 1fr; gap:40px;">${content}</div></body></html>`;
+    const headContent = document.head.innerHTML;
+    const bodyContent = clone.innerHTML;
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html lang="zh-CN">
+      <head>
+        <meta charset="UTF-8">
+        ${headContent}
+        <style>
+          body { background: #060c1d; color: #fff; padding: 50px; font-family: "Microsoft YaHei"; }
+          #export-wrapper { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 40px; }
+          .tech-card { border: 1px solid rgba(0,242,255,0.3); background: rgba(10,25,50,0.8); margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1 style="text-align:center; color:#00f2ff; font-size:36px; margin-bottom:50px;">业务数据报表分析 - ${new Date().toLocaleDateString()}</h1>
+        <div id="export-wrapper">${bodyContent}</div>
+      </body>
+      </html>
+    `;
     
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([fullHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `赛博报表_${Date.now()}.html`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `业务看板_${Date.now()}.html`;
+    link.click();
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 flex flex-col lg:flex-row p-6 lg:p-12 gap-12 max-w-[1920px] mx-auto w-full">
+        {/* 左侧控制面板 - 字体已加大加粗 */}
         <aside className="w-full lg:w-[450px] flex flex-col gap-10 shrink-0">
           <section className="tech-card p-8">
-            <h2 className="text-xl font-bold text-cyan-400 uppercase mb-6 tracking-[0.2em] flex items-center gap-3">
-              <span className="w-2 h-6 bg-cyan-400"></span> 数据源注入
+            <h2 className="text-2xl font-black text-cyan-400 uppercase mb-6 tracking-widest flex items-center gap-3">
+              <span className="w-2 h-7 bg-cyan-400"></span> 数据源注入
             </h2>
             <label className="block w-full border-2 border-dashed border-cyan-500/30 p-10 text-center bg-cyan-500/5 cursor-pointer hover:bg-cyan-500/15 transition-all rounded-xl group">
               <div className="flex flex-col items-center gap-4">
-                <svg className="w-12 h-12 text-cyan-500/50 group-hover:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-14 h-14 text-cyan-500/50 group-hover:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span className="text-base font-black text-cyan-500 tracking-widest uppercase">
-                  {loading ? '正在解码...' : '上传 CSV / XLSX'}
+                <span className="text-xl font-black text-cyan-500 tracking-widest uppercase">
+                  {loading ? '正在解析协议...' : '上传 CSV / EXCEL'}
                 </span>
               </div>
               <input type="file" accept=".csv, .xlsx, .xls" className="hidden" onChange={handleFileUpload} />
@@ -161,25 +171,25 @@ const App: React.FC = () => {
 
           {rawData.length > 0 && (
             <section className="tech-card p-8 flex flex-col gap-8">
-              <h2 className="text-xl font-bold text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-3">
-                <span className="w-2 h-6 bg-cyan-400"></span> 视觉参数配置
+              <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-widest flex items-center gap-3">
+                <span className="w-2 h-7 bg-cyan-400"></span> 视觉参数配置
               </h2>
               
               <div>
-                <label className="text-base text-cyan-300 uppercase font-black mb-3 block tracking-wider">X轴 / 汇总模式</label>
+                <label className="text-lg text-cyan-300 uppercase font-black mb-3 block tracking-wider">选择 X 轴 (维度)</label>
                 <select 
                   value={config.xAxisColumn} 
                   onChange={(e) => setConfig({...config, xAxisColumn: e.target.value})} 
-                  className="w-full bg-slate-900 border-2 border-cyan-500/30 p-4 text-base font-bold rounded-lg outline-none text-cyan-100 shadow-lg focus:border-cyan-400"
+                  className="w-full bg-slate-900 border-2 border-cyan-500/30 p-4 text-lg font-black rounded-lg outline-none text-cyan-100 shadow-xl"
                 >
-                  <option value="SUMMARY">▶ 汇总求和模式</option>
+                  <option value="SUMMARY">▶ 汇总求和模式 (总计)</option>
                   {mappings.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="text-base text-cyan-300 uppercase font-black mb-3 block tracking-wider">核心指标选择</label>
-                <div className="flex flex-wrap gap-3 max-h-64 overflow-y-auto p-4 border-2 border-cyan-500/20 rounded-xl bg-slate-900/50 custom-scrollbar shadow-inner">
+                <label className="text-lg text-cyan-300 uppercase font-black mb-3 block tracking-wider">选择业务指标 (多选)</label>
+                <div className="flex flex-wrap gap-3 max-h-72 overflow-y-auto p-4 border-2 border-cyan-500/20 rounded-xl bg-slate-900/50 custom-scrollbar shadow-inner">
                   {mappings.filter(m => m.type === ColumnType.METRIC).map(m => (
                     <button 
                       key={m.name} 
@@ -187,7 +197,7 @@ const App: React.FC = () => {
                         const next = config.metrics.includes(m.name) ? config.metrics.filter(x => x !== m.name) : [...config.metrics, m.name];
                         setConfig({...config, metrics: next});
                       }} 
-                      className={`text-sm px-4 py-2.5 border-2 transition-all font-black rounded-lg ${config.metrics.includes(m.name) ? 'border-cyan-500 bg-cyan-500/30 text-cyan-300 shadow-[0_0_10px_rgba(0,242,255,0.3)]' : 'border-white/10 text-slate-500 hover:border-cyan-500/30'}`}
+                      className={`text-base px-5 py-3 border-2 transition-all font-black rounded-lg ${config.metrics.includes(m.name) ? 'border-cyan-500 bg-cyan-500/30 text-cyan-300 shadow-[0_0_15px_rgba(0,242,255,0.4)]' : 'border-white/10 text-slate-500 hover:border-cyan-500/40'}`}
                     >
                       {m.name}
                     </button>
@@ -196,57 +206,58 @@ const App: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-base text-cyan-300 uppercase font-black mb-3 block tracking-wider">分组维度</label>
+                <label className="text-lg text-cyan-300 uppercase font-black mb-3 block tracking-wider">分组维度 (可选)</label>
                 <select 
                   value={config.groupColumn} 
                   onChange={(e) => setConfig({...config, groupColumn: e.target.value})} 
-                  className="w-full bg-slate-900 border-2 border-cyan-500/30 p-4 text-base font-bold rounded-lg outline-none text-cyan-100 shadow-lg focus:border-cyan-400"
+                  className="w-full bg-slate-900 border-2 border-cyan-500/30 p-4 text-lg font-black rounded-lg outline-none text-cyan-100 shadow-xl"
                 >
-                  <option value="">-- 请选择分组列 --</option>
+                  <option value="">-- 不进行分组 --</option>
                   {mappings.filter(m => m.type === ColumnType.DIMENSION).map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  {type:'metric_card', label:'核心数值卡'}, {type:'line', label:'折线图'}, {type:'bar', label:'柱形图'},
-                  {type:'pie', label:'环形图'}, {type:'area', label:'面积图'}, {type:'funnel', label:'漏斗图'},
-                  {type:'table', label:'明细表'}, {type:'waterfall', label:'瀑布图'}, {type:'ranking', label:'排名图'}
+                  {type:'metric_card', label:'数值卡'}, {type:'line', label:'折线'}, {type:'bar', label:'柱图'},
+                  {type:'pie', label:'环图'}, {type:'area', label:'面积'}, {type:'funnel', label:'漏斗'},
+                  {type:'table', label:'表格'}, {type:'waterfall', label:'瀑布'}, {type:'ranking', label:'排名'}
                 ].map(t => (
                   <button 
                     key={t.type} 
                     onClick={() => addChart(t.type as any)} 
-                    className="py-3 border-2 border-cyan-500/30 hover:bg-cyan-500/20 text-sm font-black text-cyan-200 transition-all rounded shadow-md active:scale-95"
+                    className="py-4 border-2 border-cyan-500/30 hover:bg-cyan-500/20 text-sm font-black text-cyan-200 transition-all rounded shadow-md active:scale-95"
                   >
                     {t.label}
                   </button>
                 ))}
               </div>
 
-              <div className="flex flex-col gap-5 mt-8">
+              <div className="flex flex-col gap-5 mt-10">
                 <button 
                   onClick={() => setIsPreview(!isPreview)} 
-                  className={`w-full py-5 font-black text-base uppercase tracking-[0.3em] transition-all rounded-lg ${isPreview ? 'bg-amber-600' : 'bg-cyan-600'} text-slate-950 shadow-2xl hover:brightness-110 active:scale-95`}
+                  className={`w-full py-6 font-black text-lg uppercase tracking-[0.3em] transition-all rounded-lg ${isPreview ? 'bg-amber-600' : 'bg-cyan-600'} text-slate-950 shadow-2xl hover:brightness-110 active:scale-95`}
                 >
-                  {isPreview ? '◀ 返回主界面' : '▶ 预览全屏布局'}
+                  {isPreview ? '◀ 返回编辑器' : '▶ 预览全屏大屏'}
                 </button>
                 <button 
                   onClick={exportSavedHTML} 
-                  className="w-full py-5 bg-fuchsia-600 text-slate-950 font-black text-base uppercase tracking-[0.3em] shadow-2xl hover:bg-fuchsia-500 transition-all rounded-lg active:scale-95"
+                  className="w-full py-6 bg-fuchsia-600 text-slate-950 font-black text-lg uppercase tracking-[0.3em] shadow-2xl hover:bg-fuchsia-500 transition-all rounded-lg active:scale-95"
                 >
-                  导出报表 (含图表)
+                  一键导出 HTML 报表
                 </button>
               </div>
             </section>
           )}
         </aside>
 
+        {/* 右侧主显示区 */}
         <div className="flex-1 space-y-12 overflow-y-auto max-h-[calc(100vh-140px)] pr-6 custom-scrollbar">
           {rawData.length > 0 && !isPreview && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {summaryStats.map(s => (
                 <div key={s.name} className="tech-card p-8 border-b-4 border-b-cyan-500 flex flex-col items-center">
-                  <p className="text-sm text-slate-500 uppercase mb-3 tracking-widest font-black">{s.name} // 实时总计</p>
+                  <p className="text-base text-slate-500 uppercase mb-3 tracking-widest font-black">{s.name} // 总计</p>
                   <p className="text-5xl cyber-font font-black text-cyan-400 neon-text-cyan">{s.sum.toLocaleString()}</p>
                 </div>
               ))}
@@ -268,22 +279,22 @@ const App: React.FC = () => {
           {rawData.length === 0 && (
             <div className="h-[75vh] flex flex-col items-center justify-center text-center">
                <div className="relative mb-12">
-                 <div className="w-40 h-40 border-2 border-cyan-500/10 rounded-full flex items-center justify-center animate-pulse">
-                    <div className="w-24 h-24 border-2 border-cyan-500/30 rounded-full animate-spin"></div>
+                 <div className="w-44 h-44 border-4 border-cyan-500/10 rounded-full flex items-center justify-center animate-pulse">
+                    <div className="w-28 h-28 border-2 border-cyan-500/30 rounded-full animate-spin"></div>
                  </div>
                </div>
-               <h2 className="text-5xl font-black tracking-[0.5em] text-white/90 uppercase">等待协议注入</h2>
-               <p className="text-sm mt-6 uppercase text-slate-400 tracking-[0.4em] font-bold">请通过控制台上传业务数据</p>
+               <h2 className="text-5xl font-black tracking-[0.5em] text-white/90 uppercase">数据链路待连接</h2>
+               <p className="text-xl mt-6 uppercase text-slate-400 tracking-[0.4em] font-black">请在控制台注入业务数据协议</p>
             </div>
           )}
         </div>
       </main>
 
-      <footer className="border-t border-white/10 p-6 flex justify-between items-center bg-slate-950/95 text-[10px] mono-font uppercase tracking-[0.4em] text-slate-500">
-        <div>CORE-V4 // EXPORT_ENGINE_READY</div>
+      <footer className="border-t border-white/10 p-6 flex justify-between items-center bg-slate-950/95 text-[12px] font-black uppercase tracking-[0.4em] text-slate-500">
+        <div>SYSTEM STATUS: ONLINE // PROTOCOL: CYBER_CORE_V5</div>
         <div className="flex gap-12 items-center">
-           <span>数据包同步: {rawData.length} 帧</span>
-           <span className="text-cyan-800 font-bold">4.22.10-FINAL</span>
+           <span>数据帧: {rawData.length.toLocaleString()}</span>
+           <span className="text-cyan-600">PRODUCTION BUILD 2025</span>
         </div>
       </footer>
     </div>
